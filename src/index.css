@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🎄 Thème de base Noël */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --christmas-red: 10 81% 44%;
+    --christmas-green: 159 90% 34%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-christmas-snow via-white to-slate-50 text-slate-800;
+  }
+}
+
+/* 🎄 Effets Noël */
+.snowflake {
+  position: fixed;
+  top: -10px;
+  animation: snow 20s linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.guirlande {
+  background: linear-gradient(90deg, #DC2626, #F59E0B, #059669, #DC2626);
+  background-size: 300% 100%;
+  animation: guirlande 3s ease-in-out infinite;
+}
+
+.christmas-card {
+  background: linear-gradient(135deg,
+    #667eea 0%, #764ba2 25%,
+    #f093fb 50%, #f5576c 75%,
+    #4facfe 100%);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+}
