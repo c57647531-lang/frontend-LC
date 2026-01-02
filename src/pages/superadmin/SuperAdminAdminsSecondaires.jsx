@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button, Card, Table, Tag, Modal, Form, Input, Checkbox } from 'antd';
-import axios from 'axios';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../../lib/axios';
+import { useAuthHeader } from '../../hooks/useAuthHeader';
 import toast from 'react-hot-toast';
-import { API_URL } from '../../constants/constants';
-import { getAuthHeader } from '../../hooks/useSuperAdminAuth';
 
 const ALL_PERMISSIONS = [
   { value: 'create_admin', label: 'Créer admin' },
@@ -21,32 +21,24 @@ const ALL_PERMISSIONS = [
 ];
 
 const SuperAdminAdminsSecondaires = () => {
-  const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const authHeader = useAuthHeader();
+  const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
   const [permModalVisible, setPermModalVisible] = useState(false);
   const [currentAdmin, setCurrentAdmin] = useState(null);
   const [form] = Form.useForm();
   const [permForm] = Form.useForm();
 
-  const fetchAdmins = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/superadmin/admins-secondaires`, {
-        headers: getAuthHeader(),
-      });
-      setAdmins(res.data || []);
-    } catch (e) {
-      console.error(e);
-      toast.error("Erreur lors du chargement des admins secondaires");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: admins = [], isLoading } = useQuery({
+    queryKey: ['superadmin-admins-secondaires'],
+    queryFn: async () => {
+      const res = await api.get('/superadmin/admins-secondaires', { headers: authHeader });
+      return res.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchAdmins();
-  }, []);
+  const refetchAdmins = () =>
+    queryClient.invalidateQueries({ queryKey: ['superadmin-admins-secondaires'] });
 
   const openCreateModal = () => {
     form.resetFields();
@@ -56,22 +48,19 @@ const SuperAdminAdminsSecondaires = () => {
   const handleCreate = async () => {
     try {
       const values = await form.validateFields();
-      await axios.post(`${API_URL}/superadmin/admins-secondaires`, values, {
-        headers: getAuthHeader(),
-      });
-      toast.success("Admin secondaire créé");
+      await api.post('/superadmin/admins-secondaires', values, { headers: authHeader });
+      toast.success('Admin secondaire créé');
       setModalVisible(false);
-      fetchAdmins();
+      refetchAdmins();
     } catch (e) {
-      if (e?.response?.data?.message) toast.error(e.response.data.message);
+      toast.error(e?.response?.data?.message || 'Erreur création');
     }
   };
 
   const openPermModal = (admin) => {
     setCurrentAdmin(admin);
-    const perms = (admin.AdminSecondairePermissions || []).map(
-      (ap) => ap.Permission?.nom
-    );
+    const perms =
+      admin.AdminSecondairePermissions?.map((ap) => ap.Permission?.nom).filter(Boolean) || [];
     permForm.setFieldsValue({ permissions: perms });
     setPermModalVisible(true);
   };
@@ -79,43 +68,36 @@ const SuperAdminAdminsSecondaires = () => {
   const handleUpdatePerms = async () => {
     try {
       const { permissions } = await permForm.validateFields();
-      await axios.put(
-        `${API_URL}/superadmin/admins-secondaires/${currentAdmin.id}/permissions`,
+      await api.put(
+        `/superadmin/admins-secondaires/${currentAdmin.id}/permissions`,
         { permissions },
-        { headers: getAuthHeader() }
+        { headers: authHeader },
       );
-      toast.success("Permissions mises à jour");
+      toast.success('Permissions mises à jour');
       setPermModalVisible(false);
-      fetchAdmins();
+      refetchAdmins();
     } catch (e) {
-      if (e?.response?.data?.message) toast.error(e.response.data.message);
+      toast.error(e?.response?.data?.message || 'Erreur permissions');
     }
   };
 
   const handleSuspend = async (admin) => {
     try {
-      await axios.post(
-        `${API_URL}/superadmin/admins-secondaires/${admin.id}/suspend`,
-        {},
-        { headers: getAuthHeader() }
-      );
-      toast.success("Admin suspendu");
-      fetchAdmins();
-    } catch (e) {
-      toast.error("Erreur lors de la suspension");
+      await api.post(`/superadmin/admins-secondaires/${admin.id}/suspend`, {}, { headers: authHeader });
+      toast.success('Admin suspendu');
+      refetchAdmins();
+    } catch {
+      toast.error('Erreur suspension');
     }
   };
 
   const handleDelete = async (admin) => {
     try {
-      await axios.delete(
-        `${API_URL}/superadmin/admins-secondaires/${admin.id}`,
-        { headers: getAuthHeader() }
-      );
-      toast.success("Admin supprimé");
-      fetchAdmins();
-    } catch (e) {
-      toast.error("Erreur lors de la suppression");
+      await api.delete(`/superadmin/admins-secondaires/${admin.id}`, { headers: authHeader });
+      toast.success('Admin supprimé');
+      refetchAdmins();
+    } catch {
+      toast.error('Erreur suppression');
     }
   };
 
@@ -134,9 +116,8 @@ const SuperAdminAdminsSecondaires = () => {
       title: 'Permissions',
       key: 'permissions',
       render: (_, record) => {
-        const perms = (record.AdminSecondairePermissions || []).map(
-          (ap) => ap.Permission?.nom
-        );
+        const perms =
+          record.AdminSecondairePermissions?.map((ap) => ap.Permission?.nom).filter(Boolean) || [];
         if (!perms.length) return <span className="text-gray-400">Aucune</span>;
         return perms.map((p) => (
           <Tag key={p} color="blue">
@@ -168,17 +149,15 @@ const SuperAdminAdminsSecondaires = () => {
     <>
       <Card
         title="Admins secondaires"
-        extra={<Button type="primary" onClick={openCreateModal}>Créer un admin secondaire</Button>}
+        extra={
+          <Button type="primary" onClick={openCreateModal}>
+            Créer un admin secondaire
+          </Button>
+        }
       >
-        <Table
-          columns={columns}
-          dataSource={admins}
-          rowKey="id"
-          loading={loading}
-        />
+        <Table columns={columns} dataSource={admins} rowKey="id" loading={isLoading} />
       </Card>
 
-      {/* Modal création admin secondaire */}
       <Modal
         title="Créer un admin secondaire"
         open={modalVisible}
@@ -211,7 +190,6 @@ const SuperAdminAdminsSecondaires = () => {
         </Form>
       </Modal>
 
-      {/* Modal permissions */}
       <Modal
         title={`Permissions de ${currentAdmin?.nom || ''}`}
         open={permModalVisible}

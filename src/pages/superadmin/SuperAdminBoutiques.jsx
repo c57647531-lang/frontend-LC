@@ -1,40 +1,37 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, Table, Tag, Modal, Form, Input, Select, Switch } from 'antd';
-import axios from 'axios';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../../lib/axios';
+import { useAuthHeader } from '../../hooks/useAuthHeader';
 import toast from 'react-hot-toast';
-import { API_URL } from '../../constants/constants';
-import { getAuthHeader } from '../../hooks/useSuperAdminAuth';
 
 const { Option } = Select;
 
 const SuperAdminBoutiques = () => {
-  const [boutiques, setBoutiques] = useState([]);
-  const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const authHeader = useAuthHeader();
+  const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [bRes, aRes] = await Promise.all([
-        axios.get(`${API_URL}/superadmin/boutiques`, { headers: getAuthHeader() }),
-        axios.get(`${API_URL}/superadmin/admins-secondaires`, { headers: getAuthHeader() }),
-      ]);
-      setBoutiques(bRes.data || []);
-      setAdmins(aRes.data || []);
-    } catch (e) {
-      console.error(e);
-      toast.error('Erreur lors du chargement des boutiques');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: admins = [] } = useQuery({
+    queryKey: ['superadmin-admins-secondaires'],
+    queryFn: async () => {
+      const res = await api.get('/superadmin/admins-secondaires', { headers: authHeader });
+      return res.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data: boutiques = [], isLoading } = useQuery({
+    queryKey: ['superadmin-boutiques'],
+    queryFn: async () => {
+      const res = await api.get('/superadmin/boutiques', { headers: authHeader });
+      return res.data;
+    },
+  });
+
+  const refetchBoutiques = () =>
+    queryClient.invalidateQueries({ queryKey: ['superadmin-boutiques'] });
 
   const openCreateModal = () => {
     setEditing(null);
@@ -62,37 +59,26 @@ const SuperAdminBoutiques = () => {
     try {
       const values = await form.validateFields();
       if (editing) {
-        await axios.put(
-          `${API_URL}/superadmin/boutiques/${editing.id}`,
-          values,
-          { headers: getAuthHeader() }
-        );
+        await api.put(`/superadmin/boutiques/${editing.id}`, values, { headers: authHeader });
         toast.success('Boutique mise à jour');
       } else {
-        await axios.post(
-          `${API_URL}/superadmin/boutiques`,
-          values,
-          { headers: getAuthHeader() }
-        );
+        await api.post('/superadmin/boutiques', values, { headers: authHeader });
         toast.success('Boutique créée');
       }
       setModalVisible(false);
-      fetchData();
+      refetchBoutiques();
     } catch (e) {
-      if (e?.response?.data?.message) toast.error(e.response.data.message);
+      toast.error(e?.response?.data?.message || 'Erreur enregistrement');
     }
   };
 
   const handleDelete = async (boutique) => {
     try {
-      await axios.delete(
-        `${API_URL}/superadmin/boutiques/${boutique.id}`,
-        { headers: getAuthHeader() }
-      );
+      await api.delete(`/superadmin/boutiques/${boutique.id}`, { headers: authHeader });
       toast.success('Boutique supprimée');
-      fetchData();
-    } catch (e) {
-      toast.error('Erreur lors de la suppression');
+      refetchBoutiques();
+    } catch {
+      toast.error('Erreur suppression');
     }
   };
 
@@ -125,8 +111,12 @@ const SuperAdminBoutiques = () => {
       key: 'actions',
       render: (_, record) => (
         <div className="space-x-2">
-          <Button size="small" onClick={() => openEditModal(record)}>Éditer</Button>
-          <Button size="small" danger onClick={() => handleDelete(record)}>Supprimer</Button>
+          <Button size="small" onClick={() => openEditModal(record)}>
+            Éditer
+          </Button>
+          <Button size="small" danger onClick={() => handleDelete(record)}>
+            Supprimer
+          </Button>
         </div>
       ),
     },
@@ -136,14 +126,13 @@ const SuperAdminBoutiques = () => {
     <>
       <Card
         title="Boutiques"
-        extra={<Button type="primary" onClick={openCreateModal}>Créer une boutique</Button>}
+        extra={
+          <Button type="primary" onClick={openCreateModal}>
+            Créer une boutique
+          </Button>
+        }
       >
-        <Table
-          columns={columns}
-          dataSource={boutiques}
-          rowKey="id"
-          loading={loading}
-        />
+        <Table columns={columns} dataSource={boutiques} rowKey="id" loading={isLoading} />
       </Card>
 
       <Modal
@@ -182,7 +171,7 @@ const SuperAdminBoutiques = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item name="typeAutre" label="Type (autre)" tooltip="si type = autre">
+          <Form.Item name="typeAutre" label="Type (autre)">
             <Input />
           </Form.Item>
 
@@ -198,11 +187,7 @@ const SuperAdminBoutiques = () => {
             <Input />
           </Form.Item>
 
-          <Form.Item
-            name="active"
-            label="Boutique active"
-            valuePropName="checked"
-          >
+          <Form.Item name="active" label="Boutique active" valuePropName="checked">
             <Switch />
           </Form.Item>
 

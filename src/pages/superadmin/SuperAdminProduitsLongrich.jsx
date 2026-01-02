@@ -1,54 +1,62 @@
-import { useEffect, useState } from 'react';
-import { Button, Card, Table, Tag, Modal, Form, Input, Select, InputNumber, Switch } from 'antd';
-import axios from 'axios';
+import { useState } from 'react';
+import {
+  Button,
+  Card,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  Select,
+  InputNumber,
+  Switch,
+} from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import api from '../../lib/axios';
+import { useAuthHeader } from '../../hooks/useAuthHeader';
 import toast from 'react-hot-toast';
-import { API_URL, CATEGORIES_LONGRICH } from '../../constants/constants';
-import { getAuthHeader } from '../../hooks/useSuperAdminAuth';
 
 const { Option } = Select;
 
+const CATEGORIES_LONGRICH = [
+  'Hygiène bucco-dentaire',
+  'Soins corporels',
+  'Nutrition',
+  'Compléments',
+  'Autres',
+];
+
 const SuperAdminProduitsLongrich = () => {
-  const [boutiques, setBoutiques] = useState([]);
-  const [produits, setProduits] = useState([]);
+  const authHeader = useAuthHeader();
+  const queryClient = useQueryClient();
   const [selectedBoutiqueId, setSelectedBoutiqueId] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
-  const fetchBoutiques = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/superadmin/boutiques`, {
-        headers: getAuthHeader(),
+  const { data: boutiques = [] } = useQuery({
+    queryKey: ['superadmin-boutiques'],
+    queryFn: async () => {
+      const res = await api.get('/superadmin/boutiques', { headers: authHeader });
+      return res.data;
+    },
+  });
+
+  const { data: produits = [], isLoading } = useQuery({
+    queryKey: ['superadmin-produits-longrich', selectedBoutiqueId],
+    enabled: !!selectedBoutiqueId,
+    queryFn: async () => {
+      const res = await api.get(`/superadmin/boutiques/${selectedBoutiqueId}/produits`, {
+        headers: authHeader,
       });
-      setBoutiques(res.data || []);
-    } catch (e) {
-      toast.error('Erreur chargement boutiques');
-    }
-  };
+      return res.data;
+    },
+  });
 
-  const fetchProduits = async (boutiqueId) => {
-    if (!boutiqueId) return;
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API_URL}/superadmin/boutiques/${boutiqueId}/produits`, {
-        headers: getAuthHeader(),
-      });
-      setProduits(res.data || []);
-    } catch (e) {
-      toast.error('Erreur chargement produits');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBoutiques();
-  }, []);
-
-  useEffect(() => {
-    fetchProduits(selectedBoutiqueId);
-  }, [selectedBoutiqueId]);
+  const refetchProduits = () =>
+    queryClient.invalidateQueries({
+      queryKey: ['superadmin-produits-longrich', selectedBoutiqueId],
+    });
 
   const openCreateModal = () => {
     setEditing(null);
@@ -80,37 +88,32 @@ const SuperAdminProduitsLongrich = () => {
       }
 
       if (editing) {
-        await axios.put(
-          `${API_URL}/superadmin/produits-longrich/${editing.id}`,
-          values,
-          { headers: getAuthHeader() }
-        );
+        await api.put(`/superadmin/produits-longrich/${editing.id}`, values, {
+          headers: authHeader,
+        });
         toast.success('Produit mis à jour');
       } else {
-        await axios.post(
-          `${API_URL}/superadmin/produits-longrich`,
+        await api.post(
+          '/superadmin/produits-longrich',
           { ...values, boutiqueId: selectedBoutiqueId },
-          { headers: getAuthHeader() }
+          { headers: authHeader },
         );
         toast.success('Produit créé');
       }
       setModalVisible(false);
-      fetchProduits(selectedBoutiqueId);
+      refetchProduits();
     } catch (e) {
-      if (e?.response?.data?.message) toast.error(e.response.data.message);
+      toast.error(e?.response?.data?.message || 'Erreur enregistrement');
     }
   };
 
   const handleDelete = async (produit) => {
     try {
-      await axios.delete(
-        `${API_URL}/superadmin/produits-longrich/${produit.id}`,
-        { headers: getAuthHeader() }
-      );
+      await api.delete(`/superadmin/produits-longrich/${produit.id}`, { headers: authHeader });
       toast.success('Produit supprimé');
-      fetchProduits(selectedBoutiqueId);
+      refetchProduits();
     } catch {
-      toast.error('Erreur lors de la suppression');
+      toast.error('Erreur suppression');
     }
   };
 
@@ -120,15 +123,15 @@ const SuperAdminProduitsLongrich = () => {
         toast.error('Sélectionnez les boutiques source et cible');
         return;
       }
-      await axios.post(
-        `${API_URL}/superadmin/boutiques/${selectedBoutiqueId}/duplicate-produits/${sourceBoutiqueId}`,
+      await api.post(
+        `/superadmin/boutiques/${selectedBoutiqueId}/duplicate-produits/${sourceBoutiqueId}`,
         {},
-        { headers: getAuthHeader() }
+        { headers: authHeader },
       );
       toast.success('Produits dupliqués');
-      fetchProduits(selectedBoutiqueId);
+      refetchProduits();
     } catch {
-      toast.error('Erreur duplication produits');
+      toast.error('Erreur duplication');
     }
   };
 
@@ -142,11 +145,7 @@ const SuperAdminProduitsLongrich = () => {
       dataIndex: 'enPromo',
       key: 'enPromo',
       render: (enPromo, record) =>
-        enPromo ? (
-          <Tag color="gold">Promo {record.prixPromo} FCFA</Tag>
-        ) : (
-          <Tag>—</Tag>
-        ),
+        enPromo ? <Tag color="gold">Promo {record.prixPromo} FCFA</Tag> : <Tag>—</Tag>,
     },
     {
       title: 'Stock',
@@ -158,8 +157,12 @@ const SuperAdminProduitsLongrich = () => {
       key: 'actions',
       render: (_, record) => (
         <div className="space-x-2">
-          <Button size="small" onClick={() => openEditModal(record)}>Éditer</Button>
-          <Button size="small" danger onClick={() => handleDelete(record)}>Supprimer</Button>
+          <Button size="small" onClick={() => openEditModal(record)}>
+            Éditer
+          </Button>
+          <Button size="small" danger onClick={() => handleDelete(record)}>
+            Supprimer
+          </Button>
         </div>
       ),
     },
@@ -207,7 +210,7 @@ const SuperAdminProduitsLongrich = () => {
           columns={columns}
           dataSource={produits}
           rowKey="id"
-          loading={loading}
+          loading={isLoading && !!selectedBoutiqueId}
         />
       </Card>
 
@@ -227,12 +230,18 @@ const SuperAdminProduitsLongrich = () => {
           <Form.Item name="categorie" label="Catégorie" rules={[{ required: true }]}>
             <Select>
               {CATEGORIES_LONGRICH.map((c) => (
-                <Option key={c} value={c}>{c}</Option>
+                <Option key={c} value={c}>
+                  {c}
+                </Option>
               ))}
             </Select>
           </Form.Item>
 
-          <Form.Item name="prixPartenaire" label="Prix partenaire" rules={[{ required: true }]}>
+          <Form.Item
+            name="prixPartenaire"
+            label="Prix partenaire"
+            rules={[{ required: true }]}
+          >
             <InputNumber min={0} className="w-full" />
           </Form.Item>
 
@@ -248,11 +257,7 @@ const SuperAdminProduitsLongrich = () => {
             <InputNumber min={0} className="w-full" />
           </Form.Item>
 
-          <Form.Item
-            name="enPromo"
-            label="En promo"
-            valuePropName="checked"
-          >
+          <Form.Item name="enPromo" label="En promo" valuePropName="checked">
             <Switch />
           </Form.Item>
         </Form>
