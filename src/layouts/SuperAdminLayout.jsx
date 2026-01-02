@@ -6,6 +6,7 @@ import {
   TeamOutlined,
   ShopOutlined,
   AppstoreOutlined,
+  UserOutlined,
   LogoutOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
@@ -17,13 +18,13 @@ const SuperAdminLayout = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-const selectedKey = (() => {
-  if (location.pathname.startsWith('/superadmin/admins-secondaires')) return 'adminsSecondaires';
-  if (location.pathname.startsWith('/superadmin/admins')) return 'admins';
-  if (location.pathname.startsWith('/superadmin/boutiques')) return 'boutiques';
-  if (location.pathname.startsWith('/superadmin/produits-longrich')) return 'produits';
-  return 'dashboard';
-})();
+  const selectedKey = (() => {
+    if (location.pathname.startsWith('/superadmin/admins-secondaires')) return 'adminsSecondaires';
+    if (location.pathname.startsWith('/superadmin/admins')) return 'admins';
+    if (location.pathname.startsWith('/superadmin/boutiques')) return 'boutiques';
+    if (location.pathname.startsWith('/superadmin/produits-longrich')) return 'produits';
+    return 'dashboard';
+  })();
 
   const menu = (
     <Menu
@@ -51,22 +52,21 @@ const selectedKey = (() => {
           theme="dark"
           mode="inline"
           selectedKeys={[selectedKey]}
-onClick={(info) => {
-  if (info.key === 'dashboard') navigate('/superadmin');
-  if (info.key === 'adminsSecondaires') navigate('/superadmin/admins-secondaires');
-  if (info.key === 'admins') navigate('/superadmin/admins');
-  if (info.key === 'boutiques') navigate('/superadmin/boutiques');
-  if (info.key === 'produits') navigate('/superadmin/produits-longrich');
-}}
-
+          onClick={(info) => {
+            if (info.key === 'dashboard') navigate('/superadmin');
+            if (info.key === 'adminsSecondaires') navigate('/superadmin/admins-secondaires');
+            if (info.key === 'admins') navigate('/superadmin/admins');
+            if (info.key === 'boutiques') navigate('/superadmin/boutiques');
+            if (info.key === 'produits') navigate('/superadmin/produits-longrich');
+          }}
           items={[
-    { key: 'dashboard', icon: <DashboardOutlined />, label: 'Tableau de bord' },
-    { key: 'adminsSecondaires', icon: <TeamOutlined />, label: 'Admins secondaires' },
-    { key: 'admins', icon: <UserOutlined />, label: 'Admins (boutiquiers)' },
-    { key: 'boutiques', icon: <ShopOutlined />, label: 'Boutiques' },
-    { key: 'produits', icon: <AppstoreOutlined />, label: 'Produits Longrich' },
-  ]}
-/>
+            { key: 'dashboard', icon: <DashboardOutlined />, label: 'Tableau de bord' },
+            { key: 'adminsSecondaires', icon: <TeamOutlined />, label: 'Admins secondaires' },
+            { key: 'admins', icon: <UserOutlined />, label: 'Admins (boutiquiers)' },
+            { key: 'boutiques', icon: <ShopOutlined />, label: 'Boutiques' },
+            { key: 'produits', icon: <AppstoreOutlined />, label: 'Produits Longrich' },
+          ]}
+        />
       </Sider>
       <Layout>
         <Header className="bg-white shadow flex items-center justify-between px-4">
