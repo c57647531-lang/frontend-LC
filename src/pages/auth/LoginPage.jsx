@@ -1,3 +1,4 @@
+// src/pages/auth/LoginPage.jsx
 import { Card, Form, Input, Button, Tabs } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
@@ -44,8 +45,6 @@ const LoginPage = () => {
               </Button>
             </Form>
           </TabPane>
-
-          {/* plus tard : Admin, Admin secondaire, Livreur */}
         </Tabs>
 
         <Button
