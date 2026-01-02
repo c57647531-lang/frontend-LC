@@ -61,7 +61,6 @@ const SuperAdminLayout = () => {
           items={[
             { key: 'dashboard', icon: <DashboardOutlined />, label: 'Tableau de bord' },
             { key: 'adminsSecondaires', icon: <TeamOutlined />, label: 'Admins secondaires' },
-            // On réutilise TeamOutlined pour les admins (boutiquiers) pour éviter UserOutlined
             { key: 'admins', icon: <TeamOutlined />, label: 'Admins (boutiquiers)' },
             { key: 'boutiques', icon: <ShopOutlined />, label: 'Boutiques' },
             { key: 'produits', icon: <AppstoreOutlined />, label: 'Produits Longrich' },
