@@ -9,6 +9,9 @@ import SuperAdminAdminsSecondaires from './pages/superadmin/SuperAdminAdminsSeco
 import SuperAdminBoutiques from './pages/superadmin/SuperAdminBoutiques';
 import SuperAdminProduitsLongrich from './pages/superadmin/SuperAdminProduitsLongrich';
 
+import SuperAdminAdmins from './pages/superadmin/SuperAdminAdmins';
+
+
 import ProtectedRoute from './components/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterSuperAdmin from './pages/auth/RegisterSuperAdmin';
@@ -32,13 +35,14 @@ function App() {
 
             {/* Super Admin protégé */}
             <Route element={<ProtectedRoute allowedRoles={['superadmin']} />}>
-              <Route path="/superadmin/*" element={<SuperAdminLayout />}>
-                <Route index element={<SuperAdminDashboard />} />
-                <Route path="admins-secondaires" element={<SuperAdminAdminsSecondaires />} />
-                <Route path="boutiques" element={<SuperAdminBoutiques />} />
-                <Route path="produits-longrich" element={<SuperAdminProduitsLongrich />} />
-              </Route>
-            </Route>
+  <Route path="/superadmin/*" element={<SuperAdminLayout />}>
+    <Route index element={<SuperAdminDashboard />} />
+    <Route path="admins-secondaires" element={<SuperAdminAdminsSecondaires />} />
+    <Route path="admins" element={<SuperAdminAdmins />} /> {/* ⬅️ NEW */}
+    <Route path="boutiques" element={<SuperAdminBoutiques />} />
+    <Route path="produits-longrich" element={<SuperAdminProduitsLongrich />} />
+  </Route>
+</Route>
 
             {/* Default */}
             <Route path="*" element={<Navigate to="/login" />} />
