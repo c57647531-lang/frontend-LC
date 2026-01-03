@@ -1,3 +1,4 @@
+// src/pages/superadmin/SuperAdminBoutiques.jsx
 import { useState } from 'react';
 import { Button, Card, Table, Tag, Modal, Form, Input, Select, Switch } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -14,10 +15,11 @@ const SuperAdminBoutiques = () => {
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
+  // Admins (boutiquiers) pour propriétaire
   const { data: admins = [] } = useQuery({
-    queryKey: ['superadmin-admins-secondaires'],
+    queryKey: ['superadmin-admins'],
     queryFn: async () => {
-      const res = await api.get('/superadmin/admins-secondaires', { headers: authHeader });
+      const res = await api.get('/superadmin/admins', { headers: authHeader });
       return res.data;
     },
   });
@@ -42,7 +44,7 @@ const SuperAdminBoutiques = () => {
   const openEditModal = (boutique) => {
     setEditing(boutique);
     form.setFieldsValue({
-      proprietaireId: boutique.proprietaireId,
+      adminId: boutique.AdminId || boutique.Admin?.id,
       nom: boutique.nom,
       type: boutique.type,
       typeAutre: boutique.typeAutre,
@@ -85,10 +87,10 @@ const SuperAdminBoutiques = () => {
   const columns = [
     { title: 'Nom', dataIndex: 'nom', key: 'nom' },
     {
-      title: 'Propriétaire',
-      dataIndex: 'proprietaire',
-      key: 'proprietaire',
-      render: (p) => p?.nom || '—',
+      title: 'Admin',
+      dataIndex: 'Admin',
+      key: 'Admin',
+      render: (a) => a?.nom || '—',
     },
     { title: 'Type', dataIndex: 'type', key: 'type' },
     { title: 'Ville', dataIndex: 'ville', key: 'ville' },
@@ -105,6 +107,23 @@ const SuperAdminBoutiques = () => {
       key: 'autoriseAjoutProduits',
       render: (val) =>
         val ? <Tag color="blue">Autorisé</Tag> : <Tag color="default">Non</Tag>,
+    },
+    {
+      title: 'Lien vitrine',
+      dataIndex: 'lienVitrine',
+      key: 'lienVitrine',
+      render: (lienVitrine) =>
+        lienVitrine ? (
+          <a
+            href={lienVitrine}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {lienVitrine}
+          </a>
+        ) : (
+          <span className="text-gray-400">Non défini</span>
+        ),
     },
     {
       title: 'Actions',
@@ -145,14 +164,14 @@ const SuperAdminBoutiques = () => {
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            name="proprietaireId"
-            label="Admin secondaire propriétaire"
+            name="adminId"
+            label="Admin (boutiquier) propriétaire"
             rules={[{ required: true }]}
           >
-            <Select placeholder="Sélectionner un admin secondaire">
+            <Select placeholder="Sélectionner un admin">
               {admins.map((a) => (
                 <Option key={a.id} value={a.id}>
-                  {a.nom} - {a.email}
+                  {a.nom} - {a.telephone}
                 </Option>
               ))}
             </Select>

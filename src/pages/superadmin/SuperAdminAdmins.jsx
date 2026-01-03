@@ -115,18 +115,10 @@ const SuperAdminAdmins = () => {
           <Form.Item name="email" label="Email">
             <Input />
           </Form.Item>
-          <Form.Item
-            name="telephone"
-            label="Téléphone"
-            rules={[{ required: true }]}
-          >
+          <Form.Item name="telephone" label="Téléphone" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item
-            name="password"
-            label="Mot de passe"
-            rules={[{ required: true, min: 6 }]}
-          >
+          <Form.Item name="password" label="Mot de passe" rules={[{ required: true, min: 6 }]}>
             <Input.Password />
           </Form.Item>
         </Form>
