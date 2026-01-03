@@ -1,4 +1,3 @@
-// src/pages/auth/RegisterSuperAdmin.jsx
 import { Card, Form, Input, Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import api from '../../lib/axios';
@@ -14,7 +13,7 @@ const RegisterSuperAdmin = () => {
     try {
       const res = await api.post('/superadmin/register', values);
       toast.success('Super Admin créé');
-      login(res.data);
+      login(res.data); // { token, role: 'superadmin', superadmin: {...} }
       navigate('/superadmin', { replace: true });
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Erreur inscription');

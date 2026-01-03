@@ -14,14 +14,13 @@ const SuperAdminBoutiques = () => {
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
-const { data: admins = [] } = useQuery({
-  queryKey: ['superadmin-admins'],
-  queryFn: async () => {
-    const res = await api.get('/superadmin/admins', { headers: authHeader });
-    return res.data;
-  },
-});
-
+  const { data: admins = [] } = useQuery({
+    queryKey: ['superadmin-admins-secondaires'],
+    queryFn: async () => {
+      const res = await api.get('/superadmin/admins-secondaires', { headers: authHeader });
+      return res.data;
+    },
+  });
 
   const { data: boutiques = [], isLoading } = useQuery({
     queryKey: ['superadmin-boutiques'],
@@ -43,17 +42,16 @@ const { data: admins = [] } = useQuery({
   const openEditModal = (boutique) => {
     setEditing(boutique);
     form.setFieldsValue({
-  adminId: boutique.AdminId,
-  nom: boutique.nom,
-  type: boutique.type,
-  typeAutre: boutique.typeAutre,
-  quartier: boutique.quartier,
-  ville: boutique.ville,
-  numeroTel: boutique.numeroTel,
-  active: boutique.active,
-  autoriseAjoutProduits: boutique.autoriseAjoutProduits,
-});
-
+      proprietaireId: boutique.proprietaireId,
+      nom: boutique.nom,
+      type: boutique.type,
+      typeAutre: boutique.typeAutre,
+      quartier: boutique.quartier,
+      ville: boutique.ville,
+      numeroTel: boutique.numeroTel,
+      active: boutique.active,
+      autoriseAjoutProduits: boutique.autoriseAjoutProduits,
+    });
     setModalVisible(true);
   };
 
@@ -87,12 +85,11 @@ const { data: admins = [] } = useQuery({
   const columns = [
     { title: 'Nom', dataIndex: 'nom', key: 'nom' },
     {
-  title: 'Admin',
-  dataIndex: 'Admin',
-  key: 'Admin',
-  render: (a) => a?.nom || '—',
-},
-
+      title: 'Propriétaire',
+      dataIndex: 'proprietaire',
+      key: 'proprietaire',
+      render: (p) => p?.nom || '—',
+    },
     { title: 'Type', dataIndex: 'type', key: 'type' },
     { title: 'Ville', dataIndex: 'ville', key: 'ville' },
     {
@@ -148,19 +145,18 @@ const { data: admins = [] } = useQuery({
       >
         <Form form={form} layout="vertical">
           <Form.Item
-  name="adminId"
-  label="Admin (boutiquier) propriétaire"
-  rules={[{ required: true }]}
->
-  <Select placeholder="Sélectionner un admin">
-    {admins.map((a) => (
-      <Option key={a.id} value={a.id}>
-        {a.nom} - {a.telephone}
-      </Option>
-    ))}
-  </Select>
-</Form.Item>
-
+            name="proprietaireId"
+            label="Admin secondaire propriétaire"
+            rules={[{ required: true }]}
+          >
+            <Select placeholder="Sélectionner un admin secondaire">
+              {admins.map((a) => (
+                <Option key={a.id} value={a.id}>
+                  {a.nom} - {a.email}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item name="nom" label="Nom de la boutique" rules={[{ required: true }]}>
             <Input />

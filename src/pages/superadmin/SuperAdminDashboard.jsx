@@ -1,4 +1,3 @@
-// src/pages/superadmin/SuperAdminDashboard.jsx
 import { Card, Col, Row, Statistic } from 'antd';
 import { ShopOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +15,7 @@ const SuperAdminDashboard = () => {
     },
   });
 
-  const { data: adminsSecondaires = [] } = useQuery({
+  const { data: admins = [] } = useQuery({
     queryKey: ['superadmin-admins-secondaires'],
     queryFn: async () => {
       const res = await api.get('/superadmin/admins-secondaires', { headers: authHeader });
@@ -31,6 +30,8 @@ const SuperAdminDashboard = () => {
       return res.data;
     },
   });
+
+  const totalProduits = 0; // tu pourras brancher plus tard une route /stats produits
 
   return (
     <div className="space-y-4">
@@ -49,7 +50,7 @@ const SuperAdminDashboard = () => {
           <Card>
             <Statistic
               title="Admins secondaires"
-              value={adminsSecondaires.length}
+              value={admins.length}
               prefix={<TeamOutlined />}
             />
           </Card>
