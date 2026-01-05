@@ -1,5 +1,5 @@
 // src/pages/superadmin/SuperAdminBoutiques.jsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, Card, Table, Tag, Modal, Form, Input, Select, Switch } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/axios';
@@ -8,6 +8,17 @@ import toast from 'react-hot-toast';
 
 const { Option } = Select;
 
+// petite fonction pour slugifier le nom de la boutique
+const slugify = (str) =>
+  str
+    .toString()
+    .normalize('NFD') // accents
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-') // tout ce qui n’est pas alphanum -> -
+    .replace(/^-+|-+$/g, '');
+
 const SuperAdminBoutiques = () => {
   const authHeader = useAuthHeader();
   const queryClient = useQueryClient();
@@ -15,7 +26,10 @@ const SuperAdminBoutiques = () => {
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
-  // Admins (boutiquiers) pour propriétaire
+  // base publique pour la vitrine (à adapter selon ton domaine réel)
+  const vitrineBaseUrl = 'https://vitrine.longrich.com';
+
+  // Admins (boutiquiers)
   const { data: admins = [] } = useQuery({
     queryKey: ['superadmin-admins'],
     queryFn: async () => {
@@ -53,6 +67,10 @@ const SuperAdminBoutiques = () => {
       numeroTel: boutique.numeroTel,
       active: boutique.active,
       autoriseAjoutProduits: boutique.autoriseAjoutProduits,
+      // on stocke uniquement la partie "slug" si l’API renvoie déjà l’URL complète
+      lienVitrine:
+        boutique.lienVitrine &&
+        boutique.lienVitrine.replace(vitrineBaseUrl, '').replace(/^\//, ''),
     });
     setModalVisible(true);
   };
@@ -60,6 +78,14 @@ const SuperAdminBoutiques = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+
+      // on peut forcer un slug propre côté frontend
+      if (values.lienVitrine) {
+        values.lienVitrine = slugify(values.lienVitrine);
+      } else if (values.nom) {
+        values.lienVitrine = slugify(values.nom);
+      }
+
       if (editing) {
         await api.put(`/superadmin/boutiques/${editing.id}`, values, { headers: authHeader });
         toast.success('Boutique mise à jour');
@@ -115,11 +141,17 @@ const SuperAdminBoutiques = () => {
       render: (lienVitrine) =>
         lienVitrine ? (
           <a
-            href={lienVitrine}
+            href={
+              lienVitrine.startsWith('http')
+                ? lienVitrine
+                : `${vitrineBaseUrl}/${lienVitrine.replace(/^\//, '')}`
+            }
             target="_blank"
             rel="noreferrer"
           >
-            {lienVitrine}
+            {lienVitrine.startsWith('http')
+              ? lienVitrine
+              : `${vitrineBaseUrl}/${lienVitrine.replace(/^\//, '')}`}
           </a>
         ) : (
           <span className="text-gray-400">Non défini</span>
@@ -140,6 +172,14 @@ const SuperAdminBoutiques = () => {
       ),
     },
   ];
+
+  // aperçu URL vitrine en temps réel
+  const previewUrl = useMemo(() => {
+    const slug = form.getFieldValue('lienVitrine');
+    if (!slug) return '';
+    const clean = slugify(slug);
+    return `${vitrineBaseUrl}/${clean}`;
+  }, [form, vitrineBaseUrl]);
 
   return (
     <>
@@ -178,7 +218,16 @@ const SuperAdminBoutiques = () => {
           </Form.Item>
 
           <Form.Item name="nom" label="Nom de la boutique" rules={[{ required: true }]}>
-            <Input />
+            <Input
+              onBlur={() => {
+                // si pas de lien renseigné, on propose un slug à partir du nom
+                const nom = form.getFieldValue('nom');
+                const exist = form.getFieldValue('lienVitrine');
+                if (!exist && nom) {
+                  form.setFieldsValue({ lienVitrine: slugify(nom) });
+                }
+              }}
+            />
           </Form.Item>
 
           <Form.Item name="type" label="Type" rules={[{ required: true }]}>
@@ -204,6 +253,20 @@ const SuperAdminBoutiques = () => {
 
           <Form.Item name="numeroTel" label="Téléphone boutique" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+
+          <Form.Item
+            name="lienVitrine"
+            label="Slug / URL d’accès à la boutique"
+            extra={
+              previewUrl && (
+                <span className="text-xs text-gray-500">
+                  URL finale : <strong>{previewUrl}</strong>
+                </span>
+              )
+            }
+          >
+            <Input placeholder="ex: boutique-longrich-yaounde-centre" />
           </Form.Item>
 
           <Form.Item name="active" label="Boutique active" valuePropName="checked">
