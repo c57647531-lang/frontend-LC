@@ -10,6 +10,7 @@ const SuperAdminAdmins = () => {
   const authHeader = useAuthHeader();
   const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
   const { data: admins = [], isLoading } = useQuery({
@@ -24,19 +25,37 @@ const SuperAdminAdmins = () => {
     queryClient.invalidateQueries({ queryKey: ['superadmin-admins'] });
 
   const openCreateModal = () => {
+    setEditing(null);
     form.resetFields();
     setModalVisible(true);
   };
 
-  const handleCreate = async () => {
+  const openEditModal = (admin) => {
+    setEditing(admin);
+    form.setFieldsValue({
+      nom: admin.nom,
+      email: admin.email,
+      telephone: admin.telephone,
+      password: '',
+    });
+    setModalVisible(true);
+  };
+
+  const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      await api.post('/superadmin/admins', values, { headers: authHeader });
-      toast.success('Admin créé');
+      if (editing) {
+        if (!values.password) delete values.password;
+        await api.put(`/superadmin/admins/${editing.id}`, values, { headers: authHeader });
+        toast.success('Admin mis à jour');
+      } else {
+        await api.post('/superadmin/admins', values, { headers: authHeader });
+        toast.success('Admin créé');
+      }
       setModalVisible(false);
       refetchAdmins();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Erreur création admin');
+      toast.error(e?.response?.data?.message || 'Erreur enregistrement');
     }
   };
 
@@ -76,10 +95,13 @@ const SuperAdminAdmins = () => {
       key: 'actions',
       render: (_, record) => (
         <div className="space-x-2">
-          <Button size="small" onClick={() => handleSuspend(record)}>
+          <Button size="small" onClick={() => openEditModal(record)}>
+            Éditer
+          </Button>
+          <Button size="small" danger onClick={() => handleSuspend(record)}>
             Suspendre
           </Button>
-          <Button size="small" danger onClick={() => handleDelete(record)}>
+          <Button size="small" onClick={() => handleDelete(record)}>
             Supprimer
           </Button>
         </div>
@@ -101,9 +123,9 @@ const SuperAdminAdmins = () => {
       </Card>
 
       <Modal
-        title="Créer un admin"
+        title={editing ? 'Modifier un admin' : 'Créer un admin'}
         open={modalVisible}
-        onOk={handleCreate}
+        onOk={handleSave}
         onCancel={() => setModalVisible(false)}
         okText="Enregistrer"
         cancelText="Annuler"
@@ -118,7 +140,11 @@ const SuperAdminAdmins = () => {
           <Form.Item name="telephone" label="Téléphone" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="password" label="Mot de passe" rules={[{ required: true, min: 6 }]}>
+          <Form.Item
+            name="password"
+            label={editing ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe'}
+            rules={editing ? [] : [{ required: true, min: 6 }]}
+          >
             <Input.Password />
           </Form.Item>
         </Form>

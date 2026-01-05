@@ -8,15 +8,15 @@ import toast from 'react-hot-toast';
 
 const { Option } = Select;
 
-// petite fonction pour slugifier le nom de la boutique
+// Déclaration explicite de slugify ici
 const slugify = (str) =>
-  str
+  (str || '')
     .toString()
-    .normalize('NFD') // accents
+    .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9]+/g, '-') // tout ce qui n’est pas alphanum -> -
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
 const SuperAdminBoutiques = () => {
@@ -26,10 +26,8 @@ const SuperAdminBoutiques = () => {
   const [editing, setEditing] = useState(null);
   const [form] = Form.useForm();
 
-  // base publique pour la vitrine (à adapter selon ton domaine réel)
   const vitrineBaseUrl = 'https://vitrine.longrich.com';
 
-  // Admins (boutiquiers)
   const { data: admins = [] } = useQuery({
     queryKey: ['superadmin-admins'],
     queryFn: async () => {
@@ -67,7 +65,6 @@ const SuperAdminBoutiques = () => {
       numeroTel: boutique.numeroTel,
       active: boutique.active,
       autoriseAjoutProduits: boutique.autoriseAjoutProduits,
-      // on stocke uniquement la partie "slug" si l’API renvoie déjà l’URL complète
       lienVitrine:
         boutique.lienVitrine &&
         boutique.lienVitrine.replace(vitrineBaseUrl, '').replace(/^\//, ''),
@@ -79,7 +76,6 @@ const SuperAdminBoutiques = () => {
     try {
       const values = await form.validateFields();
 
-      // on peut forcer un slug propre côté frontend
       if (values.lienVitrine) {
         values.lienVitrine = slugify(values.lienVitrine);
       } else if (values.nom) {
@@ -173,7 +169,6 @@ const SuperAdminBoutiques = () => {
     },
   ];
 
-  // aperçu URL vitrine en temps réel
   const previewUrl = useMemo(() => {
     const slug = form.getFieldValue('lienVitrine');
     if (!slug) return '';
@@ -220,7 +215,6 @@ const SuperAdminBoutiques = () => {
           <Form.Item name="nom" label="Nom de la boutique" rules={[{ required: true }]}>
             <Input
               onBlur={() => {
-                // si pas de lien renseigné, on propose un slug à partir du nom
                 const nom = form.getFieldValue('nom');
                 const exist = form.getFieldValue('lienVitrine');
                 if (!exist && nom) {

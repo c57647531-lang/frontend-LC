@@ -1,3 +1,4 @@
+// src/pages/superadmin/SuperAdminProduitsLongrich.jsx
 import { useState } from 'react';
 import {
   Button,
@@ -82,7 +83,7 @@ const SuperAdminProduitsLongrich = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (!selectedBoutiqueId) {
+      if (!selectedBoutiqueId && !editing?.BoutiqueId) {
         toast.error('Sélectionnez une boutique');
         return;
       }
@@ -267,4 +268,3 @@ const SuperAdminProduitsLongrich = () => {
 };
 
 export default SuperAdminProduitsLongrich;
-//top

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+// src/pages/superadmin/SuperAdminAdminsSecondaires.jsx
+import { useState } from 'react';
 import { Button, Card, Table, Tag, Modal, Form, Input, Checkbox } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/axios';
@@ -25,6 +26,7 @@ const SuperAdminAdminsSecondaires = () => {
   const queryClient = useQueryClient();
   const [modalVisible, setModalVisible] = useState(false);
   const [permModalVisible, setPermModalVisible] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [currentAdmin, setCurrentAdmin] = useState(null);
   const [form] = Form.useForm();
   const [permForm] = Form.useForm();
@@ -41,19 +43,41 @@ const SuperAdminAdminsSecondaires = () => {
     queryClient.invalidateQueries({ queryKey: ['superadmin-admins-secondaires'] });
 
   const openCreateModal = () => {
+    setEditing(null);
     form.resetFields();
     setModalVisible(true);
   };
 
-  const handleCreate = async () => {
+  const openEditModal = (admin) => {
+    setEditing(admin);
+    form.setFieldsValue({
+      nom: admin.nom,
+      email: admin.email,
+      telephone: admin.telephone,
+      password: '',
+    });
+    setModalVisible(true);
+  };
+
+  const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      await api.post('/superadmin/admins-secondaires', values, { headers: authHeader });
-      toast.success('Admin secondaire créé');
+
+      if (editing) {
+        // si password vide, ne pas l’envoyer
+        if (!values.password) delete values.password;
+        await api.put(`/superadmin/admins-secondaires/${editing.id}`, values, {
+          headers: authHeader,
+        });
+        toast.success('Admin secondaire mis à jour');
+      } else {
+        await api.post('/superadmin/admins-secondaires', values, { headers: authHeader });
+        toast.success('Admin secondaire créé');
+      }
       setModalVisible(false);
       refetchAdmins();
     } catch (e) {
-      toast.error(e?.response?.data?.message || 'Erreur création');
+      toast.error(e?.response?.data?.message || 'Erreur enregistrement');
     }
   };
 
@@ -131,6 +155,9 @@ const SuperAdminAdminsSecondaires = () => {
       key: 'actions',
       render: (_, record) => (
         <div className="space-x-2">
+          <Button size="small" onClick={() => openEditModal(record)}>
+            Éditer
+          </Button>
           <Button size="small" onClick={() => openPermModal(record)}>
             Permissions
           </Button>
@@ -159,9 +186,9 @@ const SuperAdminAdminsSecondaires = () => {
       </Card>
 
       <Modal
-        title="Créer un admin secondaire"
+        title={editing ? 'Modifier un admin secondaire' : 'Créer un admin secondaire'}
         open={modalVisible}
-        onOk={handleCreate}
+        onOk={handleSave}
         onCancel={() => setModalVisible(false)}
         okText="Enregistrer"
         cancelText="Annuler"
@@ -176,16 +203,12 @@ const SuperAdminAdminsSecondaires = () => {
           <Form.Item name="telephone" label="Téléphone" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="password" label="Mot de passe" rules={[{ required: true }]}>
+          <Form.Item
+            name="password"
+            label={editing ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe'}
+            rules={editing ? [] : [{ required: true, min: 6 }]}
+          >
             <Input.Password />
-          </Form.Item>
-          <Form.Item name="permissions" label="Permissions initiales">
-            <Checkbox.Group
-              options={ALL_PERMISSIONS.map((p) => ({
-                label: p.label,
-                value: p.value,
-              }))}
-            />
           </Form.Item>
         </Form>
       </Modal>
